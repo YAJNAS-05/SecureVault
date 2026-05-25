@@ -1,0 +1,91 @@
+{
+  "$schema": "https://raw.githubusercontent.com/ruvnet/ruflo/main/schemas/swarm.schema.json",
+  "name": "sqlinsight",
+  "description": "Multi-agent swarm that builds SQLInsight: an ML-based SQL-injection IDS (Flask + scikit-learn + React).",
+  "topology": "hierarchical",
+  "maxAgents": 8,
+  "consensus": "queen",
+  "memory": {
+    "backend": "agentdb",
+    "store": [
+      { "key": "spec/thesis", "file": "docs/thesis/thesis_extracted_text.txt" },
+      { "key": "contract/api", "file": "ruflo/contracts/api.json" },
+      { "key": "contract/metrics", "file": "ml/artifacts/metrics.json" }
+    ]
+  },
+  "hooks": {
+    "pre-edit": "guard: restrict each agent to its owned directory",
+    "post-edit": "build: run npm run build / python import check on touched files",
+    "pre-commit": "secret-scan: reject .env and credential patterns",
+    "post-task": "memory: persist agent result + contracts to AgentDB"
+  },
+  "agents": [
+    {
+      "id": "researcher",
+      "type": "researcher",
+      "owns": ["docs/thesis/"],
+      "reads": ["QAIS final thesis report .docx", "data/"],
+      "taskFile": "ruflo/agents/researcher.md",
+      "deliverables": ["spec in memory", "dataset->experiment mapping"]
+    },
+    {
+      "id": "ml-developer",
+      "type": "ml-developer",
+      "owns": ["ml/"],
+      "reads": ["spec/thesis", "data/"],
+      "taskFile": "ruflo/agents/ml-engineer.md",
+      "deliverables": ["ml/preprocess.py", "ml/train_model.py", "ml/artifacts/ML_model.pkl", "ml/artifacts/vectorizer.joblib", "ml/artifacts/metrics.json"]
+    },
+    {
+      "id": "backend-dev",
+      "type": "backend-dev",
+      "owns": ["backend/", "config.py"],
+      "reads": ["contract/metrics"],
+      "taskFile": "ruflo/agents/backend-engineer.md",
+      "produces": ["contract/api"],
+      "deliverables": ["backend/app.py", "backend/detection.py", "backend/database.py", "backend/monitor.py", "backend/alerts.py", "backend/geoip.py", "backend/accesslog.py"]
+    },
+    {
+      "id": "frontend-dev",
+      "type": "frontend-dev",
+      "owns": ["frontend/"],
+      "reads": ["contract/api", "contract/metrics"],
+      "taskFile": "ruflo/agents/frontend-engineer.md",
+      "deliverables": ["frontend/ (Vite+React+TS source)", "frontend/dist/ (committed build)"]
+    },
+    {
+      "id": "api-docs",
+      "type": "api-docs",
+      "owns": ["docs/ARCHITECTURE.md", "docs/MODEL.md", "docs/API.md", "docs/DATASET.md", "docs/DEPLOYMENT_MAC.md"],
+      "reads": ["backend/", "ml/", "contract/api", "contract/metrics"],
+      "taskFile": "ruflo/agents/docs-writer.md",
+      "deliverables": ["5 reference docs"]
+    },
+    {
+      "id": "security-manager",
+      "type": "security-manager",
+      "owns": ["docs/SECURITY.md"],
+      "reads": ["**/*"],
+      "taskFile": "ruflo/agents/security-reviewer.md",
+      "gate": true,
+      "deliverables": ["OWASP + secret-hygiene review", "sign-off"]
+    },
+    {
+      "id": "tester",
+      "type": "tester",
+      "owns": ["run.sh", "setup.sh", "tests/"],
+      "reads": ["**/*"],
+      "taskFile": "ruflo/agents/integrator-qa.md",
+      "deliverables": ["E2E verification", "macOS run scripts"]
+    }
+  ],
+  "dag": [
+    { "task": "research", "agent": "researcher", "after": [] },
+    { "task": "ml", "agent": "ml-developer", "after": ["research"] },
+    { "task": "backend", "agent": "backend-dev", "after": ["ml"] },
+    { "task": "frontend", "agent": "frontend-dev", "after": ["backend"] },
+    { "task": "docs", "agent": "api-docs", "after": ["backend"] },
+    { "task": "integrate", "agent": "tester", "after": ["frontend", "docs"] },
+    { "task": "security", "agent": "security-manager", "after": ["integrate"] }
+  ]
+}

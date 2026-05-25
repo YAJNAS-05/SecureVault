@@ -1,0 +1,42 @@
+{
+  "service": "SQLInsight API",
+  "base_url": "http://127.0.0.1:5000",
+  "note": "Frozen contract shared via ruflo memory so frontend + docs agents build in parallel with backend.",
+  "endpoints": {
+    "GET /api/health": {
+      "response": { "status": "ok", "version": "1.0.0", "model_loaded": true, "alerts_enabled": false }
+    },
+    "GET /api/model": {
+      "response_keys": ["generated_at", "sklearn_version", "model", "model_params", "features", "datasets", "experiment_1", "experiment_2_full", "experiment_2_unseen", "headline"],
+      "headline": { "accuracy": 99.71, "precision": 99.96, "recall": 99.25, "f1": 99.6 }
+    },
+    "POST /api/scan": {
+      "request": { "query": "string (required)", "source_ip": "string (optional)", "source": "string (optional)", "method": "string (optional)", "user_agent": "string (optional)", "path": "string (optional)" },
+      "response": {
+        "id": 1, "query": "admin' OR '1'='1", "prediction": 1, "confidence": 1.0,
+        "verdict": "Suspicious", "attack_type": "Tautology / Auth Bypass",
+        "source_ip": "45.83.91.10", "country": "SE", "region": "Stockholm County", "city": "Stockholm",
+        "lat": 59.33, "lon": 18.07, "ts": "2026-05-25T06:28:50Z",
+        "method": "GET", "path": "/search", "source": "scanner", "alerted": 0,
+        "log_line": "45.83.91.10 - - [..] \"GET /search?q=.. HTTP/1.1\" 200 512 \"-\" \"ua\""
+      },
+      "benign_example": { "prediction": 0, "verdict": "Normal", "attack_type": null, "confidence": 0.0007 }
+    },
+    "GET /api/events": {
+      "query_params": { "limit": "int (default 50, max 500)", "verdict": "Suspicious|Normal (optional)" },
+      "response": { "events": ["<scan response object>", "..."] }
+    },
+    "GET /api/stats": {
+      "response": {
+        "totals": { "requests": 62, "attacks": 20, "normal": 42, "alerts": 0, "attack_rate": 32.3 },
+        "last_24h": { "attacks": 20 },
+        "timeseries": [{ "bucket": "2026-05-25T06:00Z", "hour": "06:00", "attacks": 20, "normal": 42 }],
+        "by_type": [{ "type": "Tautology / Auth Bypass", "count": 7 }],
+        "by_country": [{ "country": "SE", "count": 5 }],
+        "top_ips": [{ "ip": "45.83.91.10", "count": 5, "country": "SE" }],
+        "model": { "accuracy": 99.71, "precision": 99.96, "recall": 99.25, "f1": 99.6, "generalisation": {} }
+      }
+    }
+  },
+  "sqlite_events_columns": ["id", "ts", "query", "prediction", "confidence", "verdict", "attack_type", "source_ip", "method", "path", "user_agent", "country", "region", "city", "lat", "lon", "source", "alerted"]
+}

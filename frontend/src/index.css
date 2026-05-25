@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: #08080d;
+  color: #e7e5f0;
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* App-wide background: near-black with violet radial glows + dotted grid. */
+.app-bg {
+  position: relative;
+  min-height: 100vh;
+  background-color: #08080d;
+  background-image:
+    radial-gradient(900px circle at 12% -10%, rgba(124, 58, 237, 0.18), transparent 45%),
+    radial-gradient(700px circle at 95% 0%, rgba(168, 85, 247, 0.12), transparent 40%),
+    radial-gradient(800px circle at 50% 120%, rgba(109, 40, 217, 0.1), transparent 45%);
+}
+
+/* Subtle dotted texture overlay. */
+.app-bg::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 26px 26px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%);
+  z-index: 0;
+}
+
+/* Glassmorphism card. */
+.glass {
+  background: linear-gradient(
+    180deg,
+    rgba(26, 22, 42, 0.55) 0%,
+    rgba(14, 12, 26, 0.55) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.glass-hover {
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+.glass-hover:hover {
+  border-color: rgba(168, 85, 247, 0.4);
+  box-shadow: 0 12px 40px -16px rgba(124, 58, 237, 0.5);
+  transform: translateY(-2px);
+}
+
+.gradient-text {
+  background: linear-gradient(90deg, #c4b5fd 0%, #a855f7 45%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Custom scrollbar for feed areas. */
+.scroll-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.35);
+  border-radius: 8px;
+}
+.scroll-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.6);
+}
+
+/* Smooth scrolling for in-page nav anchors, with offset for sticky nav. */
+html {
+  scroll-behavior: smooth;
+}
+section[id] {
+  scroll-margin-top: 88px;
+}

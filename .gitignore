@@ -1,0 +1,35 @@
+# ---- Secrets (NEVER commit) ----
+.env
+*.local
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+
+# ---- Node / frontend ----
+frontend/node_modules/
+frontend/.vite/
+npm-debug.log*
+
+# NOTE: frontend/dist/ is intentionally COMMITTED so the Mac can serve the
+# pre-built dashboard with Python only (no npm build required).
+
+# ---- Runtime state (regenerated at run time) ----
+runtime/*.db
+runtime/*.db-journal
+logs/*.log
+
+# ---- Editor / harness ----
+.claude/
+.idea/
+.vscode/
+
+# ---- OS ----
+.DS_Store
+Thumbs.db

@@ -1,0 +1,17 @@
+# Normalize line endings. Critical: shell scripts must stay LF so they run on
+# the macOS deployment target (CRLF would break the bash shebang).
+* text=auto eol=lf
+
+*.sh   text eol=lf
+*.py   text eol=lf
+*.svg  text eol=lf
+
+# Binary / byte-exact files (no EOL normalization).
+*.pkl    binary
+*.joblib binary
+*.docx   binary
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.csv    binary
+*.db     binary
