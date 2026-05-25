@@ -86,6 +86,17 @@ def recent_events(limit: int = 50, verdict: str | None = None) -> list[dict]:
     return [dict(r) for r in _conn().execute(sql, params).fetchall()]
 
 
+def clear_events() -> int:
+    """Delete all events and reset the auto-increment counter. Returns rows removed."""
+    cur = _conn().execute("DELETE FROM events")
+    try:
+        _conn().execute("DELETE FROM sqlite_sequence WHERE name='events'")
+    except sqlite3.OperationalError:
+        pass  # sqlite_sequence may not exist yet
+    _conn().commit()
+    return cur.rowcount
+
+
 def get_stats() -> dict:
     c = _conn()
 

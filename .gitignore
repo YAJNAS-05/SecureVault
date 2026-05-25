@@ -13,9 +13,12 @@ env/
 .mypy_cache/
 
 # ---- Node / frontend ----
-frontend/node_modules/
+node_modules/
 frontend/.vite/
 npm-debug.log*
+
+# ---- Thesis build (keep scripts + figures + .docx/.pdf; ignore temp renders) ----
+docs/thesis/build/pages/
 
 # NOTE: frontend/dist/ is intentionally COMMITTED so the Mac can serve the
 # pre-built dashboard with Python only (no npm build required).

@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { getEvents, getHealth, getModel, getStats } from './lib/api'
+import { getEvents, getHealth, getModel, getStats, postReset } from './lib/api'
 import { usePolling } from './lib/usePolling'
 import Navbar from './components/Navbar'
 import Scanner from './components/Scanner'
@@ -27,9 +27,20 @@ export default function App() {
     events.refresh()
   }, [stats, events])
 
+  // Clear all recorded detections, then refresh the dashboard to zero.
+  const handleReset = useCallback(async () => {
+    await postReset()
+    stats.refresh()
+    events.refresh()
+  }, [stats, events])
+
   return (
     <div className="app-bg">
-      <Navbar health={health.data} healthError={health.error} />
+      <Navbar
+        health={health.data}
+        healthError={health.error}
+        onReset={handleReset}
+      />
 
       <main
         id="top"

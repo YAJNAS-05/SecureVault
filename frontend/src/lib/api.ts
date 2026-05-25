@@ -39,6 +39,18 @@ export function getEvents(
   return getJson<EventsResponse>(`/api/events?${params.toString()}`, signal)
 }
 
+export async function postReset(signal?: AbortSignal): Promise<{ status: string; cleared: number }> {
+  const res = await fetch('/api/reset', {
+    method: 'POST',
+    headers: { Accept: 'application/json' },
+    signal,
+  })
+  if (!res.ok) {
+    throw new Error(`Reset failed (${res.status})`)
+  }
+  return (await res.json()) as { status: string; cleared: number }
+}
+
 export async function postScan(
   query: string,
   sourceIp?: string,

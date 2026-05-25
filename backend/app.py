@@ -105,6 +105,13 @@ def scan():
     return jsonify(event)
 
 
+@app.post("/api/reset")
+def reset():
+    """Clear all recorded detections (resets the dashboard counters to zero)."""
+    cleared = database.clear_events()
+    return jsonify(status="ok", cleared=cleared)
+
+
 @app.get("/api/events")
 def events():
     limit = min(int(request.args.get("limit", 50)), 500)

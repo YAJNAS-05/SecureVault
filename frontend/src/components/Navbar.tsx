@@ -1,4 +1,5 @@
-import { Database, Shield } from 'lucide-react'
+import { useState } from 'react'
+import { Database, RotateCcw, Shield } from 'lucide-react'
 import type { HealthResponse } from '../types'
 
 const NAV_LINKS = [
@@ -13,11 +14,32 @@ const NAV_LINKS = [
 export default function Navbar({
   health,
   healthError,
+  onReset,
 }: {
   health: HealthResponse | null
   healthError: string | null
+  onReset: () => Promise<void>
 }) {
   const online = !!health && health.status === 'ok' && !healthError
+  const [busy, setBusy] = useState(false)
+
+  const handleReset = async () => {
+    if (busy) return
+    if (
+      !window.confirm(
+        'Clear all recorded detections? This resets every counter, chart and the live feed to zero and cannot be undone.',
+      )
+    )
+      return
+    setBusy(true)
+    try {
+      await onReset()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/5 bg-ink-900/70 backdrop-blur-xl">
@@ -52,6 +74,15 @@ export default function Navbar({
 
         {/* Status cluster */}
         <div className="flex items-center gap-3">
+          <button
+            onClick={handleReset}
+            disabled={busy}
+            title="Clear all recorded detections (reset counters to zero)"
+            className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-300 transition-colors hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <RotateCcw className={`h-3.5 w-3.5 ${busy ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">{busy ? 'Resetting…' : 'Reset'}</span>
+          </button>
           <div
             className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 sm:flex"
             title={
