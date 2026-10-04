@@ -85,6 +85,20 @@ export default function LiveFeed({
   )
 }
 
+function ActionBadge({ action }: { action?: string }) {
+  if (!action) return null
+  const cfg = {
+    BLOCK: 'bg-rose-500/20 text-rose-300 border-rose-500/30',
+    ALLOW: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+    REVIEW: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+  }[action] ?? 'bg-white/10 text-slate-300 border-white/20'
+  return (
+    <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold tracking-wider ${cfg}`}>
+      {action}
+    </span>
+  )
+}
+
 function FeedRow({ event }: { event: ScanEvent }) {
   const isThreat = event.verdict === 'Suspicious'
   const geo = [event.city, event.country].filter((p) => p && p !== 'Private').join(', ')
@@ -107,9 +121,16 @@ function FeedRow({ event }: { event: ScanEvent }) {
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <VerdictBadge verdict={event.verdict} />
+          {/* Action badge (new v2 field) */}
+          <ActionBadge action={event.action} />
           {event.attack_type && (
             <span className="rounded-md bg-white/5 px-2 py-0.5 text-[11px] font-medium text-slate-300">
               {event.attack_type}
+            </span>
+          )}
+          {event.disagreement && (
+            <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-300">
+              ⚡ disagreement
             </span>
           )}
           <span
@@ -143,6 +164,12 @@ function FeedRow({ event }: { event: ScanEvent }) {
             {(event.confidence * 100).toFixed(event.confidence < 0.01 ? 2 : 0)}%
             conf.
           </span>
+          {event.latency_ms != null && (
+            <span className="tabular-nums text-slate-600">{event.latency_ms.toFixed(1)} ms</span>
+          )}
+          {event.session_id && (
+            <span className="font-mono text-brand-400/70">#{event.session_id.slice(0, 8)}</span>
+          )}
         </div>
       </div>
     </div>

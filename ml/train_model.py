@@ -1,4 +1,8 @@
-"""Train and evaluate the SQLInsight logistic-regression detector.
+"""Train and evaluate the SQLInsight detection models.
+
+Trains TWO models using the SAME fitted vectorizer (fair comparison):
+  1. LogisticRegression  (existing — same config, keeps all existing metrics)
+  2. RandomForestClassifier (new — for ensemble + research comparison)
 
 Experiment 1 (within-distribution): train/test 80/20 split of
     data/Modified_SQL_Dataset.csv          (~30.9k rows)
@@ -9,8 +13,9 @@ Experiment 2 (generalisation): evaluate on
     - unseen-only : clean rows whose Query never appears in the training set
                     (~79% of clean) -> the honest generalisation number.
 
-Artifacts written to ml/artifacts/:
+Artifacts written to ml/artifacts/
     ML_model.pkl       fitted LogisticRegression (deployed on 100% of train)
+    RF_model.pkl       fitted RandomForestClassifier (same vectorizer)
     vectorizer.joblib  fitted feature pipeline
     metrics.json       all metrics + metadata (consumed by the dashboard)
 
@@ -26,6 +31,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 import sklearn
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score,
@@ -41,6 +47,7 @@ from config import (  # noqa: E402
     EVAL_DATASET,
     METRICS_PATH,
     MODEL_PATH,
+    RF_MODEL_PATH,
     TRAIN_DATASET,
     VECTORIZER_PATH,
 )
@@ -84,43 +91,72 @@ def main() -> None:
     y_all = train_df["Label"].to_numpy()
     print(f"  feature matrix: {X_all.shape[0]:,} x {X_all.shape[1]:,}")
 
-    clf_kwargs = dict(C=4.0, solver="liblinear", max_iter=1000, class_weight="balanced")
+    lr_kwargs = dict(C=4.0, solver="liblinear", max_iter=1000, class_weight="balanced")
+    rf_kwargs = dict(n_estimators=100, class_weight="balanced", random_state=RANDOM_STATE, n_jobs=-1)
 
     # ---- Experiment 1: 80/20 split ----
     print("\nExperiment 1 -- 80/20 split on Modified_SQL_Dataset.csv")
     X_tr, X_te, y_tr, y_te = train_test_split(
         X_all, y_all, test_size=0.2, random_state=RANDOM_STATE, stratify=y_all
     )
-    clf_split = LogisticRegression(**clf_kwargs).fit(X_tr, y_tr)
-    exp1 = _scores(y_te, clf_split.predict(X_te))
-    exp1["train_size"], exp1["test_size"] = int(X_tr.shape[0]), int(X_te.shape[0])
-    _print_block("Experiment 1: within-distribution (held-out 20%)", exp1)
 
-    # ---- Final deployed model: train on 100% of the training data ----
-    print("\nTraining final model on 100% of training data (for deployment)...")
-    model = LogisticRegression(**clf_kwargs).fit(X_all, y_all)
+    print("  Training LR on 80% split...")
+    clf_lr_split = LogisticRegression(**lr_kwargs).fit(X_tr, y_tr)
+    exp1_lr = _scores(y_te, clf_lr_split.predict(X_te))
+    exp1_lr["train_size"], exp1_lr["test_size"] = int(X_tr.shape[0]), int(X_te.shape[0])
+    _print_block("Experiment 1 LR: within-distribution (held-out 20%)", exp1_lr)
+
+    print("  Training RF on 80% split (may take ~30-60s)...")
+    t_rf = time.time()
+    clf_rf_split = RandomForestClassifier(**rf_kwargs).fit(X_tr, y_tr)
+    print(f"  RF trained in {time.time() - t_rf:.1f}s")
+    exp1_rf = _scores(y_te, clf_rf_split.predict(X_te))
+    exp1_rf["train_size"], exp1_rf["test_size"] = int(X_tr.shape[0]), int(X_te.shape[0])
+    _print_block("Experiment 1 RF: within-distribution (held-out 20%)", exp1_rf)
+
+    # ---- Final deployed models: train on 100% of the training data ----
+    print("\nTraining final LR model on 100% of training data (for deployment)...")
+    model_lr = LogisticRegression(**lr_kwargs).fit(X_all, y_all)
+
+    print("Training final RF model on 100% of training data (may take ~30-60s)...")
+    t_rf2 = time.time()
+    model_rf = RandomForestClassifier(**rf_kwargs).fit(X_all, y_all)
+    print(f"  RF final trained in {time.time() - t_rf2:.1f}s")
 
     # ---- Experiment 2: generalisation to clean_sql_dataset.csv ----
     print("\nExperiment 2 -- generalisation to clean_sql_dataset.csv")
     Xe = vectorizer.transform(eval_df["Query"])
     ye = eval_df["Label"].to_numpy()
-    pred_full = model.predict(Xe)
-    exp2_full = _scores(ye, pred_full)
-    _print_block("Experiment 2: full clean dataset (thesis style)", exp2_full)
+
+    # LR
+    pred_lr_full = model_lr.predict(Xe)
+    exp2_lr_full = _scores(ye, pred_lr_full)
+    _print_block("Experiment 2 LR: full clean dataset (thesis style)", exp2_lr_full)
 
     train_queries = set(train_df["Query"].str.strip())
     unseen_mask = ~eval_df["Query"].str.strip().isin(train_queries)
-    exp2_unseen = _scores(ye[unseen_mask.to_numpy()], pred_full[unseen_mask.to_numpy()])
-    _print_block("Experiment 2: UNSEEN-only (honest generalisation)", exp2_unseen)
+    exp2_lr_unseen = _scores(ye[unseen_mask.to_numpy()], pred_lr_full[unseen_mask.to_numpy()])
+    _print_block("Experiment 2 LR: UNSEEN-only (honest generalisation)", exp2_lr_unseen)
+
+    # RF
+    pred_rf_full = model_rf.predict(Xe)
+    exp2_rf_full = _scores(ye, pred_rf_full)
+    _print_block("Experiment 2 RF: full clean dataset", exp2_rf_full)
+
+    exp2_rf_unseen = _scores(ye[unseen_mask.to_numpy()], pred_rf_full[unseen_mask.to_numpy()])
+    _print_block("Experiment 2 RF: UNSEEN-only (honest generalisation)", exp2_rf_unseen)
 
     # ---- Persist artifacts ----
-    joblib.dump(model, MODEL_PATH)
+    joblib.dump(model_lr, MODEL_PATH)
+    joblib.dump(model_rf, RF_MODEL_PATH)
     joblib.dump(vectorizer, VECTORIZER_PATH)
+
     metrics = {
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "sklearn_version": sklearn.__version__,
+        # --- LR (primary model, backwards-compat) ---
         "model": "LogisticRegression",
-        "model_params": clf_kwargs,
+        "model_params": lr_kwargs,
         "features": {
             "n_features": int(X_all.shape[1]),
             "vectorizer": "FeatureUnion(word 1-2 gram + char_wb 3-5 gram) -> VarianceThreshold",
@@ -130,18 +166,31 @@ def main() -> None:
             "eval": {"file": EVAL_DATASET.name, "rows": int(len(eval_df))},
             "overlap_note": "train is ~entirely contained in eval; unseen-only excludes it",
         },
-        "experiment_1": exp1,
-        "experiment_2_full": exp2_full,
-        "experiment_2_unseen": exp2_unseen,
+        "experiment_1": exp1_lr,
+        "experiment_2_full": exp2_lr_full,
+        "experiment_2_unseen": exp2_lr_unseen,
         "headline": {
-            "accuracy": exp1["accuracy"],
-            "precision": exp1["precision"],
-            "recall": exp1["recall"],
-            "f1": exp1["f1"],
+            "accuracy": exp1_lr["accuracy"],
+            "precision": exp1_lr["precision"],
+            "recall": exp1_lr["recall"],
+            "f1": exp1_lr["f1"],
+        },
+        # --- RF (new model) ---
+        "rf_model": "RandomForestClassifier",
+        "rf_model_params": rf_kwargs,
+        "rf_experiment_1": exp1_rf,
+        "rf_experiment_2_full": exp2_rf_full,
+        "rf_experiment_2_unseen": exp2_rf_unseen,
+        "rf_headline": {
+            "accuracy": exp1_rf["accuracy"],
+            "precision": exp1_rf["precision"],
+            "recall": exp1_rf["recall"],
+            "f1": exp1_rf["f1"],
         },
     }
     METRICS_PATH.write_text(json.dumps(metrics, indent=2))
-    print(f"\nSaved model      -> {MODEL_PATH}")
+    print(f"\nSaved LR model   -> {MODEL_PATH}")
+    print(f"Saved RF model   -> {RF_MODEL_PATH}")
     print(f"Saved vectorizer -> {VECTORIZER_PATH}")
     print(f"Saved metrics    -> {METRICS_PATH}")
     print(f"Done in {time.time() - t0:.1f}s")

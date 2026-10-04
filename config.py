@@ -28,6 +28,7 @@ for _d in (LOGS_DIR, RUNTIME_DIR, ARTIFACTS_DIR):
 
 # ---- ML artifacts ----
 MODEL_PATH = ARTIFACTS_DIR / "ML_model.pkl"
+RF_MODEL_PATH = ARTIFACTS_DIR / "RF_model.pkl"
 VECTORIZER_PATH = ARTIFACTS_DIR / "vectorizer.joblib"
 METRICS_PATH = ARTIFACTS_DIR / "metrics.json"
 
@@ -40,6 +41,7 @@ DB_PATH = RUNTIME_DIR / "sqlinsight.db"
 ACCESS_LOG_PATH = Path(os.getenv("ACCESS_LOG_PATH", str(LOGS_DIR / "access.log")))
 if not ACCESS_LOG_PATH.is_absolute():
     ACCESS_LOG_PATH = BASE_DIR / ACCESS_LOG_PATH
+COLLECTED_PAYLOADS_PATH = LOGS_DIR / "collected_payloads.jsonl"
 
 # ---- Web server ----
 HOST = os.getenv("HOST", "127.0.0.1")
@@ -60,4 +62,10 @@ ALERT_COOLDOWN_SECONDS = int(os.getenv("ALERT_COOLDOWN_SECONDS", "60"))
 # ---- Geolocation ----
 IPINFO_TOKEN = os.getenv("IPINFO_TOKEN", "").strip()
 
-VERSION = "1.0.0"
+VERSION = "2.0.0"
+
+# ---- Detection engine ----
+# Threshold for ML detectors (P(malicious) >= DETECTION_THRESHOLD -> Suspicious)
+DETECTION_THRESHOLD = float(os.getenv("DETECTION_THRESHOLD", "0.5"))
+# Ensemble policy: 'any' (any detector triggers BLOCK) or 'majority'
+ENSEMBLE_POLICY = os.getenv("ENSEMBLE_POLICY", "any")
