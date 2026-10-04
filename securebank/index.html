@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SecureVault Bank — SQL Injection Detection Demo</title>
+  <meta name="description" content="Online Banking SQL Injection Detection and Defense Demo powered by SQLInsight ML backend" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ========== PARTICLES BACKGROUND ========== -->
+  <canvas id="particles-canvas"></canvas>
+
+  <!-- ========== HEADER / NAVBAR ========== -->
+  <header class="navbar" id="navbar">
+    <div class="navbar__inner">
+      <div class="navbar__brand">
+        <div class="navbar__logo">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <rect x="2" y="6" width="28" height="20" rx="4" stroke="url(#logoGrad)" stroke-width="2.5"/>
+            <path d="M10 16h12M16 12v8" stroke="url(#logoGrad)" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="16" cy="16" r="3" fill="url(#logoGrad)" opacity="0.3"/>
+            <defs>
+              <linearGradient id="logoGrad" x1="0" y1="0" x2="32" y2="32">
+                <stop stop-color="#6EE7B7"/>
+                <stop offset="1" stop-color="#3B82F6"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <span class="navbar__title">Secure<span class="navbar__title--accent">Vault</span></span>
+      </div>
+      <nav class="navbar__nav">
+        <button class="navbar__link active" data-section="login" id="nav-login">Login</button>
+        <button class="navbar__link" data-section="search" id="nav-search">Account Search</button>
+        <button class="navbar__link" data-section="transfer" id="nav-transfer">Fund Transfer</button>
+        <button class="navbar__link" data-section="history" id="nav-history">Detection Log</button>
+      </nav>
+      <div class="navbar__status" id="backend-status">
+        <span class="status-dot" id="status-dot"></span>
+        <span class="status-text" id="status-text">Checking...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========== HERO ========== -->
+  <section class="hero" id="hero-section">
+    <div class="hero__content">
+
+      <h1 class="hero__title">
+        SQL Injection Detection<br/>
+        <span class="hero__title--gradient">& Defense in Banking</span>
+      </h1>
+      <p class="hero__subtitle">
+        Interact with banking forms below. Every action generates a real SQL query, 
+        which is analyzed by the <strong>SQLInsight ML engine</strong> for injection attacks in real-time.
+      </p>
+      <div class="hero__actions">
+        <button class="btn btn--primary" id="hero-start-btn">
+          <span>Try It Out</span>
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M7 4l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="btn btn--glass" id="hero-inject-btn">
+          <span>⚡ Test Injection Attack</span>
+        </button>
+      </div>
+    </div>
+    <div class="hero__visual">
+      <div class="hero__terminal">
+        <div class="terminal__header">
+          <span class="terminal__dot terminal__dot--red"></span>
+          <span class="terminal__dot terminal__dot--yellow"></span>
+          <span class="terminal__dot terminal__dot--green"></span>
+          <span class="terminal__title">query_monitor.sh</span>
+        </div>
+        <div class="terminal__body" id="hero-terminal-body">
+          <div class="terminal__line"><span class="terminal__prompt">$</span> <span class="terminal__cmd">sqlinsight --monitor</span></div>
+          <div class="terminal__line terminal__output">⏳ Waiting for queries...</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== MAIN CONTENT AREA ========== -->
+  <main class="main-content" id="main-content">
+
+    <!-- ===== CONFIG BAR ===== -->
+    <div class="config-bar" id="config-bar">
+      <div class="config-bar__inner">
+        <label class="config-bar__label">
+          <span>Backend URL</span>
+          <input type="text" id="backend-url" class="config-bar__input" value="http://127.0.0.1:5000" placeholder="http://127.0.0.1:5000" />
+        </label>
+        <button class="btn btn--sm btn--primary" id="test-connection-btn">Test Connection</button>
+        <div class="config-bar__info">
+          <span class="info-chip" id="connection-info">Not connected</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== BANKING FORMS SECTION ===== -->
+    <div class="forms-grid" id="forms-section">
+
+      <!-- LOGIN FORM -->
+      <section class="card card--form" id="section-login">
+        <div class="card__header">
+          <div class="card__icon card__icon--blue">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="currentColor"/></svg>
+          </div>
+          <div>
+            <h2 class="card__title">Customer Login</h2>
+            <p class="card__desc">Authenticate to your banking account</p>
+          </div>
+        </div>
+        <form class="form" id="login-form" autocomplete="off">
+          <div class="form__group">
+            <label class="form__label" for="login-username">Username / Account ID</label>
+            <input type="text" id="login-username" class="form__input" placeholder="e.g. john_doe" />
+          </div>
+          <div class="form__group">
+            <label class="form__label" for="login-password">Password</label>
+            <input type="text" id="login-password" class="form__input" placeholder="e.g. myP@ssw0rd" />
+            <span class="form__hint">⚠️ Password shown as text for demo purposes</span>
+          </div>
+          <button type="submit" class="btn btn--primary btn--full" id="login-submit">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Sign In & Analyze Query</span>
+          </button>
+        </form>
+        <div class="card__examples">
+          <span class="examples__label">Quick inject tests:</span>
+          <button class="example-btn" data-target="login" data-username="admin' OR '1'='1" data-password="anything">Classic OR bypass</button>
+          <button class="example-btn" data-target="login" data-username="admin'--" data-password="">Comment bypass</button>
+          <button class="example-btn" data-target="login" data-username="' UNION SELECT * FROM users--" data-password="">UNION attack</button>
+        </div>
+      </section>
+
+      <!-- SEARCH FORM -->
+      <section class="card card--form" id="section-search">
+        <div class="card__header">
+          <div class="card__icon card__icon--emerald">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div>
+            <h2 class="card__title">Account Search</h2>
+            <p class="card__desc">Look up account details by number or name</p>
+          </div>
+        </div>
+        <form class="form" id="search-form" autocomplete="off">
+          <div class="form__group">
+            <label class="form__label" for="search-query">Search Term</label>
+            <input type="text" id="search-query" class="form__input" placeholder="e.g. Account number or holder name" />
+          </div>
+          <div class="form__group">
+            <label class="form__label" for="search-type">Search Type</label>
+            <select id="search-type" class="form__select">
+              <option value="account_number">Account Number</option>
+              <option value="holder_name">Account Holder Name</option>
+              <option value="branch">Branch Code</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn--emerald btn--full" id="search-submit">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Search & Analyze Query</span>
+          </button>
+        </form>
+        <div class="card__examples">
+          <span class="examples__label">Quick inject tests:</span>
+          <button class="example-btn" data-target="search" data-query="1001' OR '1'='1">OR bypass</button>
+          <button class="example-btn" data-target="search" data-query="'; DROP TABLE accounts;--">DROP TABLE</button>
+          <button class="example-btn" data-target="search" data-query="1 UNION SELECT credit_card, cvv FROM cards--">Data exfil</button>
+        </div>
+      </section>
+
+      <!-- TRANSFER FORM -->
+      <section class="card card--form" id="section-transfer">
+        <div class="card__header">
+          <div class="card__icon card__icon--violet">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M17 1l4 4-4 4M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 01-4 4H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div>
+            <h2 class="card__title">Fund Transfer</h2>
+            <p class="card__desc">Transfer funds between accounts</p>
+          </div>
+        </div>
+        <form class="form" id="transfer-form" autocomplete="off">
+          <div class="form__row">
+            <div class="form__group">
+              <label class="form__label" for="transfer-from">From Account</label>
+              <input type="text" id="transfer-from" class="form__input" placeholder="e.g. ACC-10042" />
+            </div>
+            <div class="form__group">
+              <label class="form__label" for="transfer-to">To Account</label>
+              <input type="text" id="transfer-to" class="form__input" placeholder="e.g. ACC-20087" />
+            </div>
+          </div>
+          <div class="form__row">
+            <div class="form__group">
+              <label class="form__label" for="transfer-amount">Amount ($)</label>
+              <input type="text" id="transfer-amount" class="form__input" placeholder="e.g. 500.00" />
+            </div>
+            <div class="form__group">
+              <label class="form__label" for="transfer-memo">Memo / Reference</label>
+              <input type="text" id="transfer-memo" class="form__input" placeholder="e.g. Rent payment" />
+            </div>
+          </div>
+          <button type="submit" class="btn btn--violet btn--full" id="transfer-submit">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Transfer & Analyze Query</span>
+          </button>
+        </form>
+        <div class="card__examples">
+          <span class="examples__label">Quick inject tests:</span>
+          <button class="example-btn" data-target="transfer" data-from="ACC-10042" data-to="ACC-20087'; UPDATE accounts SET balance=999999 WHERE id='1" data-amount="0.01" data-memo="hack">Balance tamper</button>
+          <button class="example-btn" data-target="transfer" data-from="ACC-10042" data-to="ACC-20087" data-amount="500; DELETE FROM transactions--" data-memo="">Delete logs</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===== QUERY RESULT PANEL ===== -->
+    <section class="result-panel" id="result-panel" style="display:none;">
+      <div class="result-panel__inner">
+        <div class="result-panel__header">
+          <h2 class="result-panel__title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Analysis Result
+          </h2>
+          <button class="btn btn--ghost btn--sm" id="close-result">✕ Close</button>
+        </div>
+
+        <!-- Step 1: Generated SQL Query -->
+        <div class="result-step">
+          <div class="result-step__badge">STEP 1</div>
+          <h3 class="result-step__title">Generated SQL Query</h3>
+          <p class="result-step__desc">This is the SQL query that would be generated from your banking form input:</p>
+          <div class="code-block" id="generated-query">
+            <pre><code id="query-code"></code></pre>
+            <button class="code-block__copy" id="copy-query-btn" title="Copy to clipboard">📋</button>
+          </div>
+        </div>
+
+        <!-- Step 2: SQLInsight Analysis -->
+        <div class="result-step">
+          <div class="result-step__badge">STEP 2</div>
+          <h3 class="result-step__title">SQLInsight ML Analysis</h3>
+          <p class="result-step__desc">The query was sent to the SQLInsight backend for real-time ML-based detection:</p>
+          
+          <div class="verdict-card" id="verdict-card">
+            <div class="verdict-card__icon" id="verdict-icon"></div>
+            <div class="verdict-card__content">
+              <div class="verdict-card__label" id="verdict-label">Analyzing...</div>
+              <div class="verdict-card__confidence">
+                <span>Confidence:</span>
+                <div class="confidence-bar">
+                  <div class="confidence-bar__fill" id="confidence-fill"></div>
+                </div>
+                <span class="confidence-value" id="confidence-value">--%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detailed response -->
+          <div class="result-details" id="result-details" style="display:none;">
+            <h4>Raw API Response</h4>
+            <div class="code-block code-block--sm">
+              <pre><code id="api-response-code"></code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Defense Explanation -->
+        <div class="result-step" id="defense-step" style="display:none;">
+          <div class="result-step__badge result-step__badge--danger">STEP 3</div>
+          <h3 class="result-step__title">🛡️ Defense Mechanism</h3>
+          <p class="result-step__desc">Here's how a secure application would defend against this attack:</p>
+          <div class="defense-card" id="defense-content"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== DETECTION LOG ===== -->
+    <section class="detection-log" id="section-history" style="display:none;">
+      <div class="detection-log__header">
+        <h2 class="detection-log__title">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Detection History
+        </h2>
+        <div class="detection-log__stats">
+          <div class="stat-chip stat-chip--safe">
+            <span class="stat-chip__dot"></span>
+            <span>Safe: <strong id="stat-safe">0</strong></span>
+          </div>
+          <div class="stat-chip stat-chip--danger">
+            <span class="stat-chip__dot"></span>
+            <span>Malicious: <strong id="stat-malicious">0</strong></span>
+          </div>
+          <div class="stat-chip stat-chip--total">
+            <span>Total: <strong id="stat-total">0</strong></span>
+          </div>
+        </div>
+        <button class="btn btn--ghost btn--sm" id="clear-log-btn">🗑️ Clear Log</button>
+      </div>
+      <div class="detection-log__table-wrapper">
+        <table class="detection-log__table" id="log-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Timestamp</th>
+              <th>Form</th>
+              <th>SQL Query</th>
+              <th>Verdict</th>
+              <th>Confidence</th>
+            </tr>
+          </thead>
+          <tbody id="log-tbody"></tbody>
+        </table>
+        <div class="detection-log__empty" id="log-empty">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.3"/></svg>
+          <p>No queries analyzed yet. Use the banking forms above to generate SQL queries.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="footer">
+    <div class="footer__inner">
+      <p>SecureVault Bank — SQL Injection Detection & Defense Demo</p>
+
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

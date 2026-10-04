@@ -53,6 +53,21 @@ from config import (  # noqa: E402
 app = Flask(__name__, static_folder=None)
 database.init_db()
 
+
+@app.after_request
+def _cors(response):
+    """Allow cross-origin requests for dev integration (SecureBank demo, Red-Team agent)."""
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Accept"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    return response
+
+
+@app.route("/api/scan", methods=["OPTIONS"])
+@app.route("/api/evaluate", methods=["OPTIONS"])
+def _preflight():
+    return "", 204
+
 DEFAULT_UA = "SQLInsight-Client"
 
 
